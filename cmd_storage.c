@@ -133,6 +133,11 @@ void cmd_map_destroy(cmd_map_t *map) {
 	if (!map || !map->map)
 		return;
 
+	for (uint i = 0; i < map->size; ++i) {
+		if ((map->map + i) != NULL)
+			cmd_destroy(map->map + i);
+	}
+
 	free(map->map);
 	memset(map, 0, sizeof(*map));
 }
