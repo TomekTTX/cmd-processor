@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include "cmd_storage.h"
 
@@ -56,8 +57,6 @@ const arg_node_t *size_node_get(const char *key) {
 		{ "<CMD>",		"$cmd",		sizeof(void *)	},
 	};
 
-	__func__;
-
 	for (uint i = 0; i < (sizeof(sizes) / sizeof(sizes[0])); ++i) 
 		if (str_eq(key, sizes[i].key)) 
 			return sizes + i;
@@ -107,9 +106,9 @@ command_t cmd_make(const char *input, cmd_proc_t proc) {
 
 cmd_map_t cmd_map_make(void) {
 	cmd_map_t ret = {
-		.size = CMD_MAP_INIT_SIZE,
+		.size = CONTAINER_INIT_SIZE,
 		.count = 0,
-		.map = calloc(CMD_MAP_INIT_SIZE, sizeof(command_t)),
+		.map = calloc(CONTAINER_INIT_SIZE, sizeof(command_t)),
 	};
 
 	return ret;
@@ -131,7 +130,8 @@ bool cmd_map_add(cmd_map_t *map, const command_t *cmd) {
 
 	if (map->count == map->size) {
 		command_t *prev_map = map->map;
-		map->map = calloc(2 * map->size, sizeof(command_t));
+		if (!(map->map = calloc(2 * map->size, sizeof(command_t))))
+			return false;
 		map->count = 0;
 		map->size *= 2;
 
@@ -165,3 +165,40 @@ const command_t *cmd_map_find(const cmd_map_t *map, const char *key) {
 	return map->map[map_index].name ? map->map + map_index : NULL;
 }
 
+ptr_arraylist_t arraylist_make(destroy_func_t elem_destr_func) {
+	ptr_arraylist_t ret = {
+		.arr = calloc(CONTAINER_INIT_SIZE, sizeof(void *)),
+		.count = 0,
+		.size = CONTAINER_INIT_SIZE,
+		.elem_destr_func = elem_destr_func,
+	};
+
+	return ret;
+}
+
+bool arraylist_push(ptr_arraylist_t *list, void *item) {
+	if (list->count == list->size) {
+		list->size *= 2;
+		void **new_arr = realloc(list->arr, list->size * sizeof(void *));
+		if (list->size == 0 || !new_arr)
+			return false;
+		list->arr = new_arr;
+	}
+
+	list->arr[list->count++] = item;
+
+	return true;
+}
+
+void arraylist_destroy(ptr_arraylist_t *list) {
+	if (!list || !list->arr)
+		return;
+
+	if (list->elem_destr_func != NULL) {
+		for (uint i = 0; i < list->count; ++i)
+			(*list->elem_destr_func)(list->arr[i]);
+	}
+
+	free(list->arr);
+	list->count = list->size = 0;
+}
