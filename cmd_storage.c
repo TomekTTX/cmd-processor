@@ -40,10 +40,11 @@ bool cmd_eq(const command_t *cmd1, const command_t *cmd2) {
 }
 
 const arg_node_t *size_node_get(const char *key) {
-	static const arg_node_t sizes[] = {
+	static const arg_node_t nodes[] = {
+		{ "<SUBCMD>",	">",		0				},
 		{ "<VOID>",		"$null",	0				},
 		{ "<CHAR>",		"%c",		sizeof(char)	},
-		{ "<BYTE>",		"%hh",		sizeof(uchar)	},
+		{ "<BYTE>",		"%hh",		sizeof(char)	},
 		{ "<UBYTE>",	"%hhu",		sizeof(uchar)	},
 		{ "<SHORT>",	"%h",		sizeof(short)	},
 		{ "<USHORT>",	"%hu",		sizeof(ushort)	},
@@ -54,14 +55,18 @@ const arg_node_t *size_node_get(const char *key) {
 		{ "<LLONG>",	"%lld",		sizeof(llong)	},
 		{ "<ULLONG>",	"%llu",		sizeof(ullong)	},
 		{ "<STRING>",	"%s",		sizeof(void *)	},
+		{ "<PTR>",		"%p",		sizeof(void *)	},
 		{ "<CMD>",		"$cmd",		sizeof(void *)	},
 	};
 
-	for (uint i = 0; i < (sizeof(sizes) / sizeof(sizes[0])); ++i) 
-		if (str_eq(key, sizes[i].key)) 
-			return sizes + i;
+	if (key[0] != '<')
+		return nodes + 0;
+
+	for (uint i = 1; i < (sizeof(nodes) / sizeof(nodes[0])); ++i) 
+		if (str_eq(key, nodes[i].key)) 
+			return nodes + i;
 		
-	return sizes + 0;
+	return nodes + 1;
 }
 
 void cmd_preprocess(char *str) {
@@ -99,9 +104,19 @@ command_t cmd_make(const char *input, cmd_proc_t proc) {
 	ret.name = str;
 	ret.syntax = ret.arg_cnt ? malloc(ret.arg_cnt * sizeof(arg_node_t *)) : NULL;
 	ret.action = proc;
+	ret.subcommands = arraylist_make(&cmd_destroy);
 	cmd_syntax_parse(args, ret.syntax, ret.arg_cnt);
 
 	return ret;
+}
+
+void cmd_destroy(command_t *cmd) {
+	if (!cmd) return;
+	if (cmd->name)
+		free(cmd->name);
+	if (cmd->syntax)
+		free(cmd->syntax);
+	arraylist_destroy(&cmd->subcommands);
 }
 
 cmd_map_t cmd_map_make(void) {
