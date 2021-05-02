@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#define DEBUG
 
 typedef unsigned char		uchar;
 typedef unsigned short		ushort;
@@ -27,6 +28,7 @@ typedef struct command_t_ {
 	cmd_proc_t action;
 	arg_node_t **syntax;
 	ptr_arraylist_t subcommands;
+	bool is_dynamic_memory;
 } command_t;
 
 typedef struct cmd_map_t_ {
@@ -38,3 +40,9 @@ typedef struct tokenized_str_t_ {
 	char *str;
 	ptr_arraylist_t parts;
 } tokenized_str_t;
+
+#ifdef DEBUG
+#define debug_only(expr) expr
+#else
+#define debug_only(expr)
+#endif // DEBUG
