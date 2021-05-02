@@ -13,3 +13,6 @@ ptr_arraylist_t arraylist_make(destroy_func_t elem_destr_func);
 bool arraylist_push(ptr_arraylist_t *list, const void *item);
 void arraylist_destroy(ptr_arraylist_t *list);
 
+tokenized_str_t tok_str_make(const char *str, char delim);
+char *tok_str_get(tokenized_str_t *tok_str, uint index);
+void tok_str_destroy(tokenized_str_t *tok_str);

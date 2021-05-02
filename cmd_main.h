@@ -1,5 +1,5 @@
 #pragma once
-#include "typedefs.h"
+#include "struct_funcs.h"
 
 bool str_eq(const char *s1, const char *s2);
 

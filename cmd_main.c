@@ -1,5 +1,6 @@
 #include "cmd_main.h"
 #include "cmd_storage.h"
+#include "struct_funcs.h"
 #include <string.h>
 
 static cmd_map_t command_map = { 0 };

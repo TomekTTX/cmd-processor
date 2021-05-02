@@ -2,43 +2,9 @@
 #include <stdio.h>
 #include <string.h>
 #include "cmd_storage.h"
-#include "struct_funcs.h"
 
 #pragma warning (disable: 5045)
 
-uint rol(uint num, uchar dist) {
-	return (num << dist) | (num >> (8 * sizeof(num) - dist));
-}
-
-uint hash(const char *str) {
-	uint hash = 0x539CA32B;
-
-	for (uchar i = 0; str[i]; ++i) {
-		hash = rol(hash, 3 + hash % 8);
-		hash ^= str[i];
-		hash ^= rol(hash, 4 + hash % 6);
-	}
-
-	return hash;
-}
-
-uint cmd_hash(const command_t *cmd) {
-	uint ret = hash(cmd->name);
-	//for (uint i = 0; i < cmd->arg_cnt; ++i)
-	//	ret ^= hash(cmd->syntax[i]->key);
-
-	return ret;
-}
-
-bool cmd_eq(const command_t *cmd1, const command_t *cmd2) {
-	if (!(str_eq(cmd1->name, cmd2->name) && cmd1->arg_cnt == cmd2->arg_cnt))
-		return false;
-	for (uint i = 0; i < cmd1->arg_cnt; ++i)
-		if (cmd1->syntax[i]->key != cmd2->syntax[i]->key)
-			return false;
-
-	return true;
-}
 
 const arg_node_t *size_node_get(const char *key) {
 	static const arg_node_t nodes[] = {
@@ -92,7 +58,7 @@ void cmd_merge_subcmd(ptr_arraylist_t *list, command_t *cmd) {
 	arraylist_push(list, cmd);
 }
 
-void cmd_syntax_parse(const char *args, command_t *cmd) {
+void cmd_syntax_parse(char *args, command_t *cmd) {
 
 	for (uint i = 0, j = 0; i < cmd->arg_cnt; ++i) {
 		cmd->syntax[i] = size_node_get(args + j);
@@ -109,7 +75,7 @@ void cmd_syntax_parse(const char *args, command_t *cmd) {
 	}
 }
 
-command_t cmd_make(const char *input, cmd_proc_t proc, const cmd_map_t *merge_into) {
+command_t cmd_make(const char *input, cmd_proc_t proc/*, const cmd_map_t *merge_into*/) {
 	char *str = _strdup(input);
 
 	cmd_preprocess(str);

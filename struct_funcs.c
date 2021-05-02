@@ -1,5 +1,44 @@
 #include <stdlib.h>
+#include <string.h>
 #include "struct_funcs.h"
+#include "cmd_storage.h"
+
+#pragma warning (disable: 5045)
+
+
+uint rol(uint num, uchar dist) {
+	return (num << dist) | (num >> (8 * sizeof(num) - dist));
+}
+
+uint hash(const char *str) {
+	uint hash = 0x539CA32B;
+
+	for (uchar i = 0; str[i]; ++i) {
+		hash = rol(hash, 3 + hash % 8);
+		hash ^= str[i];
+		hash ^= rol(hash, 4 + hash % 6);
+	}
+
+	return hash;
+}
+
+uint cmd_hash(const command_t *cmd) {
+	uint ret = hash(cmd->name);
+	//for (uint i = 0; i < cmd->arg_cnt; ++i)
+	//	ret ^= hash(cmd->syntax[i]->key);
+
+	return ret;
+}
+
+bool cmd_eq(const command_t *cmd1, const command_t *cmd2) {
+	if (!(str_eq(cmd1->name, cmd2->name) && cmd1->arg_cnt == cmd2->arg_cnt))
+		return false;
+	for (uint i = 0; i < cmd1->arg_cnt; ++i)
+		if (cmd1->syntax[i]->key != cmd2->syntax[i]->key)
+			return false;
+
+	return true;
+}
 
 cmd_map_t cmd_map_make(void) {
 	cmd_map_t ret = {
@@ -103,4 +142,37 @@ void arraylist_destroy(ptr_arraylist_t *list) {
 
 	free(list->arr);
 	list->count = list->size = 0;
+}
+
+tokenized_str_t tok_str_make(const char *str, char delim) {
+	tokenized_str_t ret = {
+		.str = _strdup(str),
+		.parts = arraylist_make(NULL),
+	};
+
+	if (!ret.str)
+		return ret;
+
+	arraylist_push(&ret.parts, ret.str);
+	for (uint i = 0; ret.str[i]; ++i) {
+		if (ret.str[i] == delim) {
+			ret.str[i] = '\0';
+			arraylist_push(&ret.parts, ret.str + i);
+		}
+	}
+}
+
+char *tok_str_get(tokenized_str_t *tok_str, uint index) {
+	if (!tok_str || index >= tok_str->parts.count)
+		return NULL;
+
+	return (char *)(tok_str->parts.arr[index]);
+}
+
+void tok_str_destroy(tokenized_str_t *tok_str) {
+	if (!tok_str || !tok_str->str)
+		return;
+
+	arraylist_destroy(&tok_str->parts);
+	free(tok_str->str);
 }
