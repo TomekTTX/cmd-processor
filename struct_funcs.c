@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include "struct_funcs.h"
 #include "cmd_storage.h"
 
@@ -94,6 +95,9 @@ bool cmd_map_add(cmd_map_t *map, const command_t *cmd) {
 }
 
 const command_t *cmd_map_find(const cmd_map_t *map, const char *key) {
+	if (!map->map || map->count == 0)
+		return NULL;
+
 	const uint base_index = hash(key) % map->size;
 	uint map_index = base_index;
 
@@ -125,6 +129,11 @@ bool arraylist_push(ptr_arraylist_t *list, void *item) {
 			return false;
 		list->arr = new_arr;
 	}
+
+	debug_only(
+	command_t *cmd = (command_t *)item;
+	printf("adding '%s' to arraylist at %p\n", cmd->name, list);
+	)
 
 	list->arr[list->count++] = item;
 

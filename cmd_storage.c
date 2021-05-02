@@ -5,7 +5,6 @@
 
 #pragma warning (disable: 5045)
 
-
 const arg_node_t *size_node_get(const char *key) {
 	static const arg_node_t nodes[] = {
 		{ "<SUBCMD>",	">",		0				},
@@ -36,25 +35,8 @@ const arg_node_t *size_node_get(const char *key) {
 	return nodes + 1;
 }
 
-void cmd_skip_existent(char *cmd_str, const cmd_map_t *merge_into) {
-	if (!cmd_str || !merge_into)
-		return;
-
-	command_t *cur = NULL;
-
-}
-
-void cmd_preprocess(char *str) {
-	const int len = strlen(str);
-
-	for (int i = len - 1; i >= 0 && str[i] <= ' '; str[i--] = '\0');
-	for (int i = 0; i < len; ++i)
-		if (str[i] == ' ')
-			str[i] = '\0';
-}
-
 void cmd_merge_subcmd(ptr_arraylist_t *list, command_t *cmd) {
-	printf("Merge called for %s\n", cmd->name);
+	debug_only(printf("Merge called for %s\n", cmd->name);)
 	arraylist_push(list, cmd);
 }
 
@@ -69,21 +51,33 @@ void cmd_syntax_parse(char *args, command_t *cmd) {
 
 			cmd->action = NULL;
 			if (subcommand)
-				*subcommand = cmd_parse(args, action);
+				*subcommand = cmd_make(args, action);
 			cmd_merge_subcmd(&cmd->subcommands, subcommand);
 		}
 	}
 }
 
-command_t cmd_make(const char *input, cmd_proc_t proc/*, const cmd_map_t *merge_into*/) {
-	char *str = _strdup(input);
-
-	cmd_preprocess(str);
-
-	return cmd_parse(str, proc);
+command_t *cmd_alloc(const char *input, cmd_proc_t proc) {
+	command_t *ret = malloc(sizeof(command_t));
+	if (ret) {
+		*ret = cmd_make(input, proc);
+		ret->is_dynamic_memory = true;
+	}
+	return ret;
 }
 
-command_t cmd_parse(char *str, cmd_proc_t proc) {
+//command_t cmd_make(const char *input, cmd_proc_t proc) {
+//	command_t ret = { 0 };
+//	extern cmd_map_t global_command_map;
+//	char *str = _strdup(input);
+//	
+//	cmd_preprocess(str);
+//	ret = cmd_parse(cmd_skip_existent(str, &global_command_map), proc);
+//	free(str);
+//	return ret;
+//}
+
+command_t cmd_make(char *str, cmd_proc_t proc) {
 	command_t ret = { 0 };
 	char *args = str;
 
@@ -99,7 +93,7 @@ command_t cmd_parse(char *str, cmd_proc_t proc) {
 		}
 	}
 
-	ret.name = str;
+	ret.name = _strdup(str);
 	ret.syntax = ret.arg_cnt ? malloc(ret.arg_cnt * sizeof(arg_node_t *)) : NULL;
 	ret.action = proc;
 	ret.subcommands = arraylist_make(&cmd_destroy);
@@ -109,28 +103,14 @@ command_t cmd_parse(char *str, cmd_proc_t proc) {
 }
 
 void cmd_destroy(command_t *cmd) {
-	if (!cmd) return;
+	if (!cmd)
+		return;
 	if (cmd->name)
 		free(cmd->name);
 	if (cmd->syntax)
 		free(cmd->syntax);
 	arraylist_destroy(&cmd->subcommands);
+	if (cmd->is_dynamic_memory)
+		free(cmd);
 }
 
-
-
-
-/*
-if (args = strchr(str, ' ')) {
-	ret.arg_cnt = 1;
-	args[0] = '\0';
-	for (uint i = 1; args[i]; ++i) {
-		if (args[i] == ' ') {
-			args[i] = '\0';
-			ret.arg_cnt++;
-			if (args[i + 1] != '<')
-				break;
-		}
-	}
-}
-*/
