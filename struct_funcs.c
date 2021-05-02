@@ -157,9 +157,11 @@ tokenized_str_t tok_str_make(const char *str, char delim) {
 	for (uint i = 0; ret.str[i]; ++i) {
 		if (ret.str[i] == delim) {
 			ret.str[i] = '\0';
-			arraylist_push(&ret.parts, ret.str + i);
+			arraylist_push(&ret.parts, ret.str + i + 1);
 		}
 	}
+
+	return ret;
 }
 
 char *tok_str_get(tokenized_str_t *tok_str, uint index) {
