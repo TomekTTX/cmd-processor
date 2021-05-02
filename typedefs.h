@@ -33,3 +33,8 @@ typedef struct cmd_map_t_ {
 	command_t *map;
 	uint size, count;
 } cmd_map_t;
+
+typedef struct tokenized_str_t_ {
+	char *str;
+	ptr_arraylist_t parts;
+} tokenized_str_t;
