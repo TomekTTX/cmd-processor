@@ -3,6 +3,7 @@
 #include "struct_funcs.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define cmd_print(cmd) cmd_print_rec(cmd, 0)
 #pragma warning (disable: 5045)
@@ -73,18 +74,23 @@ bool cmd_register(const char *cmd_str, cmd_proc_t action) {
 	if (global_command_map.map == NULL)
 		global_command_map = cmd_map_make();
 
+	debug_only(printf("REGISTER START (%s)\n", cmd_str);)
+
 	char *str = _strdup(cmd_str);
 	cmd_preprocess(str);
 	cmd_tree_location_t loc = cmd_skip_existent(str, &global_command_map);
 
+
 	if (loc.parent == NULL) {
 		command_t cmd = cmd_make(loc.ptr, action);
 		free(str);
+		debug_only(printf("REGISTER FINISH (%s)\n", cmd_str);)
 		return cmd_map_add(&global_command_map, &cmd);
 	}
 	else {
 		command_t *cmd = cmd_alloc(loc.ptr, action);
 		free(str);
+		debug_only(printf("REGISTER FINISH (%s)\n", cmd_str);)
 		return arraylist_push(&loc.parent->subcommands, cmd);
 	}
 }
@@ -95,7 +101,7 @@ void cmd_print_rec(const command_t *cmd, uint depth) {
 		printf("%s ", cmd->syntax[i]->key);
 	for (uint i = 0; i < cmd->subcommands.count; ++i) {
 		putchar('\n');
-		for (uint i = 0; i <= depth; ++i)
+		for (uint i = 0; i <= depth * 2; ++i)
 			putchar(' ');
 		cmd_print_rec((const command_t *)cmd->subcommands.arr[i], depth + 1);
 	}
