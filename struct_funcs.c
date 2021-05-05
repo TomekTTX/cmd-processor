@@ -130,10 +130,10 @@ bool arraylist_push(ptr_arraylist_t *list, void *item) {
         list->arr = new_arr;
     }
 
-    debug_only(
-    command_t *cmd = (command_t *)item;
-    printf("adding '%s' to arraylist at %p\n", cmd->name, list);
-    )
+    //debug_only(
+    //command_t *cmd = (command_t *)item;
+    //printf("adding '%s' to arraylist at %p\n", cmd->name, list);
+    //)
 
     list->arr[list->count++] = item;
 
@@ -152,6 +152,39 @@ void arraylist_destroy(ptr_arraylist_t *list) {
     free(list->arr);
     list->count = list->size = 0;
 }
+
+byte_arraylist_t byte_arraylist_make(void) {
+    byte_arraylist_t ret = {
+        .arr = calloc(CONTAINER_INIT_SIZE, sizeof(uchar)),
+        .count = 0,
+        .size = CONTAINER_INIT_SIZE,
+    };
+
+    return ret;
+}
+
+bool byte_arraylist_push(byte_arraylist_t *list, uchar item) {
+    if (list->count == list->size) {
+        list->size *= 2;
+        uchar *new_arr = realloc(list->arr, list->size * sizeof(uchar));
+        if (list->size == 0 || !new_arr)
+            return false;
+        list->arr = new_arr;
+    }
+
+    list->arr[list->count++] = item;
+
+    return true;
+}
+
+void byte_arraylist_destroy(byte_arraylist_t *list) {
+    if (!list || !list->arr)
+        return;
+
+    free(list->arr);
+    list->count = list->size = 0;
+}
+
 
 tokenized_str_t tok_str_make(const char *str, char delim) {
     tokenized_str_t ret = {
@@ -186,4 +219,60 @@ void tok_str_destroy(tokenized_str_t *tok_str) {
 
     arraylist_destroy(&tok_str->parts);
     free(tok_str->str);
+}
+
+arg_bundle_t arg_bundle_make(void) {
+    arg_bundle_t ret = {
+        .args = arraylist_make(NULL),
+        .data = byte_arraylist_make(),
+        .index = 0,
+    };
+
+    return ret;
+}
+
+bool arg_bundle_add_(arg_bundle_t *bundle, void *src, uint size) {
+    if (!bundle || !src || size == 0)
+        return false;
+
+    arraylist_push(&bundle->args, (void *)bundle->data.count);
+    for (uint i = 0; i < size; ++i) {
+        byte_arraylist_push(&bundle->data, ((uchar *)src)[i]);
+    }
+
+    return true;
+}
+
+uint arg_bundle_get_(arg_bundle_t *bundle, void *dst, uint size) {
+    if (!bundle || !dst || size == 0)
+        return NULL;
+    if (bundle->index == bundle->args.count) {
+        arg_bundle_destroy(bundle);
+        return NULL;
+    }
+
+    const uchar *src = bundle->data.arr + (uint)bundle->args.arr[bundle->index++];
+    const uint iter_limit = (bundle->data.arr + bundle->data.count) - src;
+
+    for (uint i = 0; i < size && i < iter_limit; ++i) {
+        ((uchar *)dst)[i] = src[i];
+    }
+
+    return min(size, iter_limit);
+}
+
+void *arg_bundle_get_raw_(arg_bundle_t *bundle) {
+    if (!bundle)
+        return NULL;
+    if (bundle->index == bundle->args.count) {
+        arg_bundle_destroy(bundle);
+        return NULL;
+    }
+
+    return bundle->data.arr + (uint)bundle->args.arr[bundle->index++];
+}
+
+void arg_bundle_destroy(arg_bundle_t *bundle) {
+    arraylist_destroy(&bundle->args);
+    byte_arraylist_destroy(&bundle->data);
 }

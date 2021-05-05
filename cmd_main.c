@@ -48,7 +48,6 @@ cmd_tree_location_t cmd_skip_existent(char *cmd_str, const cmd_map_t *cmd_map) {
     if (!cmd_str || !cmd_map)
         return ret;
 
-    uint i;
     const command_t *cur = cmd_map_find(cmd_map, cmd_str);
 
     if (cur == NULL) {
@@ -56,7 +55,7 @@ cmd_tree_location_t cmd_skip_existent(char *cmd_str, const cmd_map_t *cmd_map) {
         return ret;
     }
 
-    for (i = 0; cmd_str[i] || cmd_str[i + 1]; ++i) {
+    for (uint i = 0; cmd_str[i] || cmd_str[i + 1]; ++i) {
         if (cmd_str[i] == '\0') {
             ret.parent = cur;
             cur = find_subcommand(cmd_str + i + 1, &cur->subcommands);

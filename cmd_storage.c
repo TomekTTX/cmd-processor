@@ -67,17 +67,6 @@ command_t *cmd_alloc(const char *input, cmd_proc_t proc) {
     return ret;
 }
 
-//command_t cmd_make(const char *input, cmd_proc_t proc) {
-//  command_t ret = { 0 };
-//  extern cmd_map_t global_command_map;
-//  char *str = _strdup(input);
-//  
-//  cmd_preprocess(str);
-//  ret = cmd_parse(cmd_skip_existent(str, &global_command_map), proc);
-//  free(str);
-//  return ret;
-//}
-
 command_t cmd_make(const char *str, cmd_proc_t proc) {
     command_t ret = { 0 };
     char *args = (char *)str;

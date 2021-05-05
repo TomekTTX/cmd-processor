@@ -11,6 +11,11 @@ typedef          long long  llong;
 typedef void (*cmd_proc_t)(void *);
 typedef void (*destroy_func_t)(void *);
 
+typedef struct obj_data_t_ {
+    bool is_dynamic_memory, is_valid;
+    uchar flags;
+} obj_data_t;
+
 typedef struct arg_node_t_ {
     const char *key, *format;
     uint size;
@@ -21,6 +26,11 @@ typedef struct ptr_arraylist_t_ {
     uint size, count;
     destroy_func_t elem_destr_func;
 } ptr_arraylist_t;
+
+typedef struct byte_arraylist_t_ {
+    uchar *arr;
+    uint size, count;
+} byte_arraylist_t;
 
 typedef struct command_t_ {
     char *name;
@@ -41,8 +51,16 @@ typedef struct tokenized_str_t_ {
     ptr_arraylist_t parts;
 } tokenized_str_t;
 
+typedef struct arg_bundle_t_ {
+    const void *static_data;
+    byte_arraylist_t data;
+    ptr_arraylist_t args;
+    uint index;
+} arg_bundle_t;
+
 #ifdef DEBUG
 #define debug_only(expr) expr
 #else
 #define debug_only(expr)
 #endif // DEBUG
+
