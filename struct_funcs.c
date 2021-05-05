@@ -245,10 +245,10 @@ bool arg_bundle_add_(arg_bundle_t *bundle, void *src, uint size) {
 
 uint arg_bundle_get_(arg_bundle_t *bundle, void *dst, uint size) {
     if (!bundle || !dst || size == 0)
-        return NULL;
+        return 0;
     if (bundle->index == bundle->args.count) {
         arg_bundle_destroy(bundle);
-        return NULL;
+        return 0;
     }
 
     const uchar *src = bundle->data.arr + (uint)bundle->args.arr[bundle->index++];

@@ -30,3 +30,4 @@ void arg_bundle_destroy(arg_bundle_t *bundle);
 #define arg_bundle_add(bundle, data) arg_bundle_add_(&bundle, &data, sizeof(data))
 #define arg_bundle_get(bundle, dst) arg_bundle_get_(&bundle, &dst, sizeof(dst))
 #define arg_bundle_getas(bundle, type) (*(type *)arg_bundle_get_raw_(&bundle))
+//#define next_arg arg_bundle_getas

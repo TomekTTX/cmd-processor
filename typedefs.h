@@ -1,4 +1,7 @@
+#ifndef TYPEDEFS_H
+
 #include <stdbool.h>
+#define TYPEDEFS_H
 #define DEBUG
 
 typedef unsigned char       uchar;
@@ -8,12 +11,11 @@ typedef unsigned long       ulong;
 typedef unsigned long long  ullong;
 typedef          long long  llong;
 
-typedef void (*cmd_proc_t)(void *);
 typedef void (*destroy_func_t)(void *);
 
 typedef struct obj_data_t_ {
     bool is_dynamic_memory, is_valid;
-    uchar flags;
+    uchar flags[2];
 } obj_data_t;
 
 typedef struct arg_node_t_ {
@@ -31,6 +33,20 @@ typedef struct byte_arraylist_t_ {
     uchar *arr;
     uint size, count;
 } byte_arraylist_t;
+
+typedef struct arg_bundle_t_ {
+    const void *static_data;
+    byte_arraylist_t data;
+    ptr_arraylist_t args;
+    uint index;
+} arg_bundle_t;
+
+typedef void (*cmd_act_t)(arg_bundle_t, const void *);
+
+typedef struct cmd_proc_t_ {
+    cmd_act_t action;
+    const void *static_data;
+} cmd_proc_t;
 
 typedef struct command_t_ {
     char *name;
@@ -51,12 +67,6 @@ typedef struct tokenized_str_t_ {
     ptr_arraylist_t parts;
 } tokenized_str_t;
 
-typedef struct arg_bundle_t_ {
-    const void *static_data;
-    byte_arraylist_t data;
-    ptr_arraylist_t args;
-    uint index;
-} arg_bundle_t;
 
 #ifdef DEBUG
 #define debug_only(expr) expr
@@ -64,3 +74,4 @@ typedef struct arg_bundle_t_ {
 #define debug_only(expr)
 #endif // DEBUG
 
+#endif // !TYPEDEFS_H

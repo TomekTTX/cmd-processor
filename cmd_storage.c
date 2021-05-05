@@ -44,16 +44,13 @@ void cmd_merge_subcmd(ptr_arraylist_t *list, command_t *cmd) {
 void cmd_syntax_parse(char *args, command_t *cmd) {
 
     for (uint i = 0, j = 0; i < cmd->arg_cnt; ++i) {
-        cmd->syntax[i] = size_node_get(args + j);
+        cmd->syntax[i] = (arg_node_t *)size_node_get(args + j);
         while (args[j++] != '\0');
         if (cmd->syntax[i]->format[0] == '>') {
             cmd_proc_t action = cmd->action;
-            command_t *subcommand = malloc(sizeof(command_t));
 
-            cmd->action = NULL;
-            if (subcommand)
-                *subcommand = cmd_make(args, action);
-            cmd_merge_subcmd(&cmd->subcommands, subcommand);
+            cmd->action.action = NULL;
+            cmd_merge_subcmd(&cmd->subcommands, cmd_alloc(args, action));
         }
     }
 }
