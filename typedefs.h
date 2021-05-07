@@ -37,11 +37,11 @@ typedef struct byte_arraylist_t_ {
 typedef struct arg_bundle_t_ {
     const void *static_data;
     byte_arraylist_t data;
-    ptr_arraylist_t args;
+    ptr_arraylist_t args, dynamic_blocks;
     uint index;
 } arg_bundle_t;
 
-typedef void (*cmd_act_t)(arg_bundle_t, const void *);
+typedef void (*cmd_act_t)(arg_bundle_t *, const void *);
 
 typedef struct cmd_proc_t_ {
     cmd_act_t action;

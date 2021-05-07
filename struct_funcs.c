@@ -224,6 +224,7 @@ void tok_str_destroy(tokenized_str_t *tok_str) {
 arg_bundle_t arg_bundle_make(void) {
     arg_bundle_t ret = {
         .args = arraylist_make(NULL),
+        .dynamic_blocks = arraylist_make(&free),
         .data = byte_arraylist_make(),
         .index = 0,
     };
@@ -231,11 +232,15 @@ arg_bundle_t arg_bundle_make(void) {
     return ret;
 }
 
-bool arg_bundle_add_(arg_bundle_t *bundle, void *src, uint size) {
+bool arg_bundle_add_(arg_bundle_t *bundle, void *src, uint size, bool dynamic) {
     if (!bundle || !src || size == 0)
         return false;
 
     arraylist_push(&bundle->args, (void *)bundle->data.count);
+    if (dynamic) {
+        debug_only(printf("bundle: src = %p\n", src));
+        arraylist_push(&bundle->dynamic_blocks, src);
+    }
     for (uint i = 0; i < size; ++i) {
         byte_arraylist_push(&bundle->data, ((uchar *)src)[i]);
     }
@@ -274,5 +279,6 @@ void *arg_bundle_get_raw_(arg_bundle_t *bundle) {
 
 void arg_bundle_destroy(arg_bundle_t *bundle) {
     arraylist_destroy(&bundle->args);
+    arraylist_destroy(&bundle->dynamic_blocks);
     byte_arraylist_destroy(&bundle->data);
 }

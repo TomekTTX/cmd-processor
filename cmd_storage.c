@@ -22,7 +22,7 @@ const arg_node_t *size_node_get(const char *key) {
         { "<ULLONG>",   "%llu",     sizeof(ullong)  },
         { "<STRING>",   "%s",       sizeof(char *)  },
         { "<PTR>",      "%p",       sizeof(void *)  },
-        { "<CMD>",      "$cmd",     sizeof(void *)  },
+     // { "<CMD>",      "$cmd",     sizeof(void *)  },
     };
     static const arg_node_t err = { "<ERROR>", "$unknown", 0 };
 
