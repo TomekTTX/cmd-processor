@@ -238,8 +238,8 @@ bool arg_bundle_add_(arg_bundle_t *bundle, void *src, uint size, bool dynamic) {
 
     arraylist_push(&bundle->args, (void *)bundle->data.count);
     if (dynamic) {
-        debug_only(printf("bundle: src = %p\n", src));
-        arraylist_push(&bundle->dynamic_blocks, src);
+        //debug_only(printf("bundle: src = %p\n", src));
+        arraylist_push(&bundle->dynamic_blocks, *(void **)src);
     }
     for (uint i = 0; i < size; ++i) {
         byte_arraylist_push(&bundle->data, ((uchar *)src)[i]);

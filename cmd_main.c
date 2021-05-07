@@ -117,7 +117,7 @@ parser_state_t next_state(const command_t *cur_cmd, uint args_parsed) {
 void bundle_push(arg_bundle_t *args, const uchar *data, const arg_node_t *syntax_node) {
     if (str_eq(syntax_node->key, "<STRING>")) {
         char *str = _strdup(data);
-        arg_bundle_add_(args, str, syntax_node->size, true);
+        arg_bundle_add_(args, &str, syntax_node->size, true);
     }
     else
         arg_bundle_add_(args, data, syntax_node->size, false);
