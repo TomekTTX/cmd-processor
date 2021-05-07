@@ -12,6 +12,7 @@ const arg_node_t *size_node_get(const char *key) {
         { "<CHAR>",     "%c",       sizeof(char)    },
         { "<BYTE>",     "%hh",      sizeof(char)    },
         { "<UBYTE>",    "%hhu",     sizeof(uchar)   },
+        { "<UCHAR>",    "%hhu",     sizeof(uchar)   },
         { "<SHORT>",    "%h",       sizeof(short)   },
         { "<USHORT>",   "%hu",      sizeof(ushort)  },
         { "<INT>",      "%d",       sizeof(int)     },
@@ -32,12 +33,13 @@ const arg_node_t *size_node_get(const char *key) {
     for (uint i = 1; i < (sizeof(nodes) / sizeof(nodes[0])); ++i) 
         if (str_eq(key, nodes[i].key)) 
             return nodes + i;
-        
+
+    debug_only(puts("[WARN] size_node_get() returned <ERROR> node"));
     return &err;
 }
 
 void cmd_merge_subcmd(ptr_arraylist_t *list, command_t *cmd) {
-    debug_only(printf("Merge called for %s\n", cmd->name);)
+    debug_only(printf("[INFO] Merge called for %s\n", cmd->name);)
     arraylist_push(list, cmd);
 }
 

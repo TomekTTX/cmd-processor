@@ -40,9 +40,9 @@ void cmd_preprocess(char *str) {
 
 command_t *find_subcommand(const char *key, const ptr_arraylist_t *list) {
     for (uint j = 0; j < list->count; ++j) {
-        debug_only(printf("compare: %s - %s\n", key, ((command_t *)list->arr[j])->name);)
+        debug_only(printf("[INFO] compare: %s - %s\n", key, ((command_t *)list->arr[j])->name));
         if (str_eq(key, ((command_t *)list->arr[j])->name)) {
-            debug_only(puts("equal!");)
+            debug_only(puts("[INFO] equal!"));
             return (command_t *)list->arr[j];
         }
     }
@@ -80,7 +80,7 @@ bool cmd_register(const char *cmd_str, cmd_act_t action, const void *static_data
     if (global_command_map.map == NULL)
         global_command_map = cmd_map_make();
 
-    debug_only(printf("REGISTER START (%s)\n", cmd_str);)
+    debug_only(printf("[INFO] REGISTER START (%s)\n", cmd_str);)
 
     char *str = _strdup(cmd_str);
     cmd_preprocess(str);
@@ -90,13 +90,13 @@ bool cmd_register(const char *cmd_str, cmd_act_t action, const void *static_data
     if (loc.parent == NULL) {
         command_t cmd = cmd_make(loc.ptr, proc);
         free(str);
-        debug_only(printf("REGISTER FINISH (%s)\n", cmd_str);)
+        debug_only(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str);)
         return cmd_map_add(&global_command_map, &cmd);
     }
     else {
         command_t *cmd = cmd_alloc(loc.ptr, proc);
         free(str);
-        debug_only(printf("REGISTER FINISH (%s)\n", cmd_str);)
+        debug_only(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str);)
         return arraylist_push(&loc.parent->subcommands, cmd);
     }
 }
@@ -161,12 +161,12 @@ bool cmd_execute(const char *cmd_str) {
             arg_bundle_destroy(&args);
             return (state == READY);
         default:
-            debug_only(puts("UNKNOWN state detected!"));
+            debug_only(puts("[WARNING] UNKNOWN state detected!"));
             break;
         }
     }
 
-    debug_only(puts("How did we get here?"));
+    debug_only(puts("[ERROR] How did we get here?"));
     return false;
 }
 
@@ -187,8 +187,10 @@ void cmd_print_rec(const command_t *cmd, uint depth) {
 
 void cmd_dumpall(void) {
     for (uint i = 0; i < global_command_map.size; ++i) {
-        if (global_command_map.map[i].name != NULL)
+        if (global_command_map.map[i].name != NULL) {
+            putchar('\n');
             cmd_print(global_command_map.map + i);
+        }
     }
     putchar('\n');
 }

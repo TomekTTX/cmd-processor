@@ -104,7 +104,7 @@ const command_t *cmd_map_find(const cmd_map_t *map, const char *key) {
     while (map->map[map_index].name != NULL && !str_eq(map->map[map_index].name, key)) {
         map_index++;
         if ((map_index %= map->size) == base_index)
-            break;
+            return NULL;
     }
 
     return map->map[map_index].name ? map->map + map_index : NULL;
@@ -201,6 +201,8 @@ tokenized_str_t tok_str_make(const char *str, char delim) {
             ret.str[i] = '\0';
             arraylist_push(&ret.parts, ret.str + i + 1);
         }
+        if (ret.str[i] < ' ')
+            ret.str[i] = '\0';
     }
 
     return ret;
