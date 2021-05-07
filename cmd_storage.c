@@ -10,10 +10,10 @@ const arg_node_t *size_node_get(const char *key) {
         { "<SUBCMD>",   ">",        0               },
         { "<VOID>",     "$null",    0               },
         { "<CHAR>",     "%c",       sizeof(char)    },
-        { "<BYTE>",     "%hh",      sizeof(char)    },
+        { "<BYTE>",     "%hhd",      sizeof(char)   },
         { "<UBYTE>",    "%hhu",     sizeof(uchar)   },
         { "<UCHAR>",    "%hhu",     sizeof(uchar)   },
-        { "<SHORT>",    "%h",       sizeof(short)   },
+        { "<SHORT>",    "%hd",       sizeof(short)  },
         { "<USHORT>",   "%hu",      sizeof(ushort)  },
         { "<INT>",      "%d",       sizeof(int)     },
         { "<UINT>",     "%u",       sizeof(uint)    },
@@ -27,19 +27,24 @@ const arg_node_t *size_node_get(const char *key) {
     };
     static const arg_node_t err = { "<ERROR>", "$unknown", 0 };
 
-    if (key[0] != '<')
+    if (key[0] != '<') {
+        DEBUG_ONLY(printf("[INFO] Node returned: %s\n", nodes[0].key););
         return nodes + 0;
+    }
 
-    for (uint i = 1; i < (sizeof(nodes) / sizeof(nodes[0])); ++i) 
-        if (str_eq(key, nodes[i].key)) 
+    for (uint i = 1; i < (sizeof(nodes) / sizeof(nodes[0])); ++i) {
+        if (str_eq(key, nodes[i].key)) {
+            DEBUG_ONLY(printf("[INFO] Node returned: %s\n", nodes[i].key););
             return nodes + i;
+        }
+    }
 
-    debug_only(puts("[WARN] size_node_get() returned <ERROR> node"));
+    DEBUG_ONLY(puts("[WARN] size_node_get() returned <ERROR> node"));
     return &err;
 }
 
 void cmd_merge_subcmd(ptr_arraylist_t *list, command_t *cmd) {
-    debug_only(printf("[INFO] Merge called for %s\n", cmd->name);)
+    DEBUG_ONLY(printf("[INFO] Merge called for %s\n", cmd->name);)
     arraylist_push(list, cmd);
 }
 
@@ -47,13 +52,13 @@ void cmd_syntax_parse(char *args, command_t *cmd) {
 
     for (uint i = 0, j = 0; i < cmd->arg_cnt; ++i) {
         cmd->syntax[i] = (arg_node_t *)size_node_get(args + j);
-        while (args[j++] != '\0');
         if (cmd->syntax[i]->format[0] == '>') {
             cmd_proc_t action = cmd->action;
 
             cmd->action.action = NULL;
-            cmd_merge_subcmd(&cmd->subcommands, cmd_alloc(args, action));
+            cmd_merge_subcmd(&cmd->subcommands, cmd_alloc(args + j, action));
         }
+        while (args[j++] != '\0');
     }
 }
 

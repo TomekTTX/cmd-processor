@@ -1,8 +1,7 @@
-#ifndef TYPEDEFS_H
-
+#pragma once
 #include <stdbool.h>
-#define TYPEDEFS_H
-#define DEBUG
+
+#pragma warning (disable: 4820)
 
 typedef unsigned char       uchar;
 typedef unsigned short      ushort;
@@ -35,17 +34,17 @@ typedef struct byte_arraylist_t_ {
 } byte_arraylist_t;
 
 typedef struct arg_bundle_t_ {
-    const void *static_data;
+    void *static_data;
     byte_arraylist_t data;
     ptr_arraylist_t args, dynamic_blocks;
     uint index;
 } arg_bundle_t;
 
-typedef void (*cmd_act_t)(arg_bundle_t *, const void *);
+typedef void (*cmd_act_t)(arg_bundle_t *);
 
 typedef struct cmd_proc_t_ {
     cmd_act_t action;
-    const void *static_data;
+    void *static_data;
 } cmd_proc_t;
 
 typedef struct command_t_ {
@@ -67,11 +66,3 @@ typedef struct tokenized_str_t_ {
     ptr_arraylist_t parts;
 } tokenized_str_t;
 
-
-#ifdef DEBUG
-#define debug_only(expr) expr
-#else
-#define debug_only(expr)
-#endif // DEBUG
-
-#endif // !TYPEDEFS_H

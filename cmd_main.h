@@ -1,4 +1,20 @@
 #pragma once
+
+#define INTERACTIVE
+#define DEBUG
+
+#ifdef DEBUG
+#define DEBUG_ONLY(expr) expr
+#else
+#define DEBUG_ONLY(expr)
+#endif // DEBUG
+
+#ifdef INTERACTIVE
+#define INTERACTIVE_ONLY(expr) expr
+#else
+#define INTERACTIVE_ONLY(expr)
+#endif // DEBUG
+
 #include "struct_funcs.h"
 
 bool str_eq(const char *s1, const char *s2);

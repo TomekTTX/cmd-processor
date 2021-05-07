@@ -234,7 +234,7 @@ arg_bundle_t arg_bundle_make(void) {
     return ret;
 }
 
-bool arg_bundle_add_(arg_bundle_t *bundle, void *src, uint size, bool dynamic) {
+bool arg_bundle_add_(arg_bundle_t *bundle, const void *src, uint size, bool dynamic) {
     if (!bundle || !src || size == 0)
         return false;
 

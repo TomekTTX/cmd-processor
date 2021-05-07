@@ -22,7 +22,7 @@ char *tok_str_get(tokenized_str_t *tok_str, uint index);
 void tok_str_destroy(tokenized_str_t *tok_str);
 
 arg_bundle_t arg_bundle_make(void);
-bool arg_bundle_add_(arg_bundle_t *bundle, void *src, uint size, bool dynamic);
+bool arg_bundle_add_(arg_bundle_t *bundle, const void *src, uint size, bool dynamic);
 uint arg_bundle_get_(arg_bundle_t *bundle, void *dst, uint size);
 void *arg_bundle_get_raw_(arg_bundle_t *bundle);
 void arg_bundle_destroy(arg_bundle_t *bundle);
