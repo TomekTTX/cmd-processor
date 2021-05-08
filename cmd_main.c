@@ -130,7 +130,7 @@ bool cmd_register(const char *cmd_str, cmd_act_t action, const void *static_data
     if (global_command_map.map == NULL)
         global_command_map = cmd_map_make();
 
-    DEBUG_ONLY(printf("[INFO] REGISTER START (%s)\n", cmd_str);)
+    DEBUG_ONLY(printf("[INFO] REGISTER START (%s)\n", cmd_str));
 
     char *str = _strdup(cmd_str);
     cmd_preprocess(str);
@@ -141,15 +141,15 @@ bool cmd_register(const char *cmd_str, cmd_act_t action, const void *static_data
         // a completely new command - add it to the global hashmap
         command_t cmd = cmd_make(loc.ptr, proc);
         free(str);
-        DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str);)
+        DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str));
         return cmd_map_add(&global_command_map, &cmd);
     }
     else {
-        // parts of this commands already exist
+        // parts of this command already exist
         // skip them and add a new subcommand in the tree
         command_t *cmd = cmd_alloc(loc.ptr, proc);
         free(str);
-        DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str);)
+        DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str));
         return arraylist_push(&loc.parent->subcommands, cmd);
     }
 }
