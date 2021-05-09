@@ -126,7 +126,7 @@ cmd_tree_location_t cmd_skip_existent(char *cmd_str, const cmd_map_t *cmd_map) {
 * IMPORTANT: currently cmd_str should have a space, CR, LF or a similar blank char at the end
 *            otherwise this function will most likely crash the program
 */
-bool cmd_register(const char *cmd_str, cmd_act_t action, const void *static_data) {
+bool cmd_register(const char *cmd_str, cmd_act_t action, void *static_data) {
     if (global_command_map.map == NULL)
         global_command_map = cmd_map_make();
 
@@ -135,7 +135,7 @@ bool cmd_register(const char *cmd_str, cmd_act_t action, const void *static_data
     char *str = _strdup(cmd_str);
     cmd_preprocess(str);
     const cmd_tree_location_t loc = cmd_skip_existent(str, &global_command_map);
-    const cmd_proc_t proc = { .action = action, .static_data = (void *)static_data };
+    const cmd_proc_t proc = { .action = action, .static_data = static_data };
 
     if (loc.parent == NULL) {
         // a completely new command - add it to the global hashmap
@@ -184,7 +184,7 @@ parser_state_t next_state(const command_t *cur_cmd, uint args_parsed) {
 /*
 * Helper function of cmd_execute()
 * Adds a parsed argument to the arg bundle
-* Responsible for the special handling of string-type arguments
+* Responsible for special handling of string-type arguments
 * 
 * args - pointer to the arg bundle the argument should be added to
 * data - pointer to the argument's raw data
@@ -253,7 +253,7 @@ bool cmd_execute(const char *cmd_str) {
             /* FALLTHROUGH */
         case ERROR:
             INTERACTIVE_ONLY(if (!cur_cmd) printf("[ERROR] Unknown command '%s'\n", last_search));
-            // clean memory up after a command runs or an error occurs
+            // clean memory up after a command runs/an error occurs
             tok_str_destroy(&input);
             arg_bundle_destroy(&args);
             return (state == READY);
@@ -272,8 +272,8 @@ bool cmd_execute(const char *cmd_str) {
 /*
 * Recursive command printing function used by cmd_dumpall()
 * 
-*  cmd   -  pointer to a command to be printed out
-*  depth -  current depth of recursion, used to determine indent size
+* cmd   -  pointer to a command to be printed out
+* depth -  current depth of recursion, used to determine indent size
 * 
 * The macro cmd_print(cmd) can be used to print a single command and its subtree 
 */
