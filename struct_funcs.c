@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "struct_funcs.h"
 #include "cmd_storage.h"
 
@@ -336,6 +337,7 @@ arg_bundle_t arg_bundle_make(void) {
         .dynamic_blocks = arraylist_make(&free),
         .data = byte_arraylist_make(),
         .index = 0,
+        .empty = true,
     };
 
     return ret;
@@ -363,6 +365,7 @@ bool arg_bundle_add_(arg_bundle_t *bundle, const void *src, uint size, bool dyna
     for (uint i = 0; i < size; ++i) {
         byte_arraylist_push(&bundle->data, ((uchar *)src)[i]);
     }
+    bundle->empty = false;
 
     return true;
 }
@@ -384,6 +387,7 @@ uint arg_bundle_get_(arg_bundle_t *bundle, void *dst, uint size) {
         return 0;
     if (bundle->index == bundle->args.count) {
         arg_bundle_destroy(bundle);
+        bundle->empty = true;
         return 0;
     }
 
@@ -409,14 +413,56 @@ uint arg_bundle_get_(arg_bundle_t *bundle, void *dst, uint size) {
 */
 void *arg_bundle_get_raw_(arg_bundle_t *bundle) {
     static const llong out_of_args = -1;
+
     if (!bundle)
         return NULL;
     if (bundle->index == bundle->args.count) {
         arg_bundle_destroy(bundle);
+        bundle->empty = true;
         return &out_of_args;
     }
 
     return bundle->data.arr + (uint)bundle->args.arr[bundle->index++];
+}
+
+bool arg_bundle_unpack_one(arg_bundle_t *bundle, void *dst_) {
+    if (!bundle || !dst_ || bundle->empty)
+        return false;
+    if (bundle->index == bundle->args.count) {
+        arg_bundle_destroy(bundle);
+        bundle->empty = true;
+        return false;
+    }
+    const uchar *end_ptr;
+    const uchar *src = bundle->data.arr + (uint)bundle->args.arr[bundle->index++];
+    uchar *dst = (uchar *)dst_;
+
+    if (bundle->index != bundle->args.count)
+        end_ptr = bundle->data.arr + (uint)bundle->args.arr[bundle->index];
+    else
+        end_ptr = bundle->data.arr + bundle->data.count;
+
+    while (src != end_ptr)
+        *dst++ = *src++;
+
+    return true;
+}
+
+uint arg_bundle_unpack(arg_bundle_t *bundle, void **static_data, ...) {
+    void *dst = NULL;
+    uint ret = 0;
+    va_list args;
+    va_start(args, static_data);
+
+    if (static_data)
+        *static_data = bundle->static_data;
+    do {
+        dst = va_arg(args, void *);
+        ++ret;
+    } while (arg_bundle_unpack_one(bundle, dst));
+
+    va_end(args);
+    return ret - 1;
 }
 
 /*
@@ -426,6 +472,7 @@ void *arg_bundle_get_raw_(arg_bundle_t *bundle) {
 */
 void arg_bundle_destroy(arg_bundle_t *bundle) {
     arraylist_destroy(&bundle->args);
-    arraylist_destroy(&bundle->dynamic_blocks);
+    arraylist_destroy(&bundle->dynamic_blocks);    
+
     byte_arraylist_destroy(&bundle->data);
 }
