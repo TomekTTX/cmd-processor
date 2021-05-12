@@ -386,7 +386,7 @@ uint arg_bundle_get_(arg_bundle_t *bundle, void *dst, uint size) {
     if (!bundle || !dst || size == 0)
         return 0;
     if (bundle->index == bundle->args.count) {
-        arg_bundle_destroy(bundle);
+        // arg_bundle_destroy(bundle);
         bundle->empty = true;
         return 0;
     }
@@ -417,19 +417,31 @@ void *arg_bundle_get_raw_(arg_bundle_t *bundle) {
     if (!bundle)
         return NULL;
     if (bundle->index == bundle->args.count) {
-        arg_bundle_destroy(bundle);
+        // arg_bundle_destroy(bundle);
         bundle->empty = true;
-        return &out_of_args;
+        return (void *)&out_of_args;
     }
 
     return bundle->data.arr + (uint)bundle->args.arr[bundle->index++];
 }
 
+/*
+* Copies the current argument from a bundle to a given location
+* Size is inferred from the next argument's start pointer / end of data array
+* Increments the bundle's index
+* If the bundle is out of arguments, it is deleted
+* 
+* bundle - the arg bundle to copy from
+* dst_   - the location to copy to
+* 
+* returns - whether an argument was copied
+*/
 bool arg_bundle_unpack_one(arg_bundle_t *bundle, void *dst_) {
     if (!bundle || !dst_ || bundle->empty)
         return false;
     if (bundle->index == bundle->args.count) {
-        arg_bundle_destroy(bundle);
+        // bad idea, don't do that here
+        // arg_bundle_destroy(bundle);
         bundle->empty = true;
         return false;
     }
@@ -445,9 +457,21 @@ bool arg_bundle_unpack_one(arg_bundle_t *bundle, void *dst_) {
     while (src != end_ptr)
         *dst++ = *src++;
 
-    return true;
+    return true; 
 }
 
+/*
+* Variadic function that unpacks an arg bundle all at once
+* The bundle's content will be sequentially copied to the provided memory locations
+* Automatic deletion of the bundle was removed beacause it breaks string-type arguments
+* 
+* bundle      - the arg bundle to unpack
+* static_data - pointer to a pointer where the bundle's static_data field will be copied
+* ...         - pointers to variables the contents will be copied to
+* (make sure the order of these pointers and variable types are the same as in the command)
+* 
+* returns - number of copied arguments
+*/
 uint arg_bundle_unpack(arg_bundle_t *bundle, void **static_data, ...) {
     void *dst = NULL;
     uint ret = 0;
@@ -467,12 +491,16 @@ uint arg_bundle_unpack(arg_bundle_t *bundle, void **static_data, ...) {
 
 /*
 * Frees all memory allocated by arg_bundle_make()
+* Can be safely called on an already deleted bundle
+* In such case it doesn't do anything
 * 
 * bundle - the bundle to be deleted
 */
 void arg_bundle_destroy(arg_bundle_t *bundle) {
-    arraylist_destroy(&bundle->args);
-    arraylist_destroy(&bundle->dynamic_blocks);    
-
-    byte_arraylist_destroy(&bundle->data);
+    if (bundle->args.size != 0)
+        arraylist_destroy(&bundle->args);
+    if (bundle->dynamic_blocks.size != 0)
+        arraylist_destroy(&bundle->dynamic_blocks);
+    if (bundle->data.size != 0)
+        byte_arraylist_destroy(&bundle->data);
 }
