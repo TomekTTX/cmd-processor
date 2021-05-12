@@ -12,10 +12,10 @@ typedef          long long  llong;
 
 typedef void (*destroy_func_t)(void *);
 
-typedef struct obj_data_t_ {
-    bool is_dynamic_memory, is_valid;
-    uchar flags[2];
-} obj_data_t;
+//typedef struct obj_data_t_ {
+//    bool is_dynamic_memory, is_valid;
+//    uchar flags[2];
+//} obj_data_t;
 
 typedef struct arg_node_t_ {
     const char *key, *format;
@@ -38,6 +38,7 @@ typedef struct arg_bundle_t_ {
     byte_arraylist_t data;
     ptr_arraylist_t args, dynamic_blocks;
     uint index;
+    bool empty;
 } arg_bundle_t;
 
 typedef void (*cmd_act_t)(arg_bundle_t *);
