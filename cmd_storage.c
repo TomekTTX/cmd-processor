@@ -15,7 +15,7 @@
 const arg_node_t *size_node_get(const char *key) {
     static const arg_node_t nodes[] = {
         { "<SUBCMD>",  ">",      0              },
-        { "<VOID>",    "$null",  0              },
+     // { "<VOID>",    "$null",  0              },
         { "<CHAR>",    "%c",     sizeof(char)   },
         { "<UCHAR>",   "%hhu",   sizeof(uchar)  },
         { "<BYTE>",    "%hhd",   sizeof(char)   },
@@ -28,11 +28,13 @@ const arg_node_t *size_node_get(const char *key) {
         { "<ULONG>",   "%lu",    sizeof(ulong)  },
         { "<LLONG>",   "%lld",   sizeof(llong)  },
         { "<ULLONG>",  "%llu",   sizeof(ullong) },
-        { "<STRING>",  "%s",     sizeof(char *) },
+        { "<STRING>",  "%511s",  sizeof(char *) },
         { "<PTR>",     "%p",     sizeof(void *) },
      // { "<CMD>",     "$cmd",   sizeof(void *) },
     };
     static const arg_node_t err = { "<ERROR>", "$unknown", 0 };
+
+
 
     if (key[0] != '<') {
         DEBUG_ONLY(printf("[INFO] Node returned: %s\n", nodes[0].key););
@@ -51,6 +53,7 @@ const arg_node_t *size_node_get(const char *key) {
 }
 
 // Temporary; adds cmd to list
+// Used only by cmd_syntax_parse()
 // Currently exists only for logging reasons
 void cmd_merge_subcmd(ptr_arraylist_t *list, command_t *cmd) {
     DEBUG_ONLY(printf("[INFO] Merge called for %s\n", cmd->name);)
@@ -147,3 +150,52 @@ void cmd_destroy(command_t *cmd) {
         free(cmd);
 }
 
+
+
+
+// EXPERIMENTAL
+command_t *cmd_alloc_(const tokenized_str_t *str, cmd_proc_t proc, uint str_index) {
+    command_t *ret = malloc(sizeof(command_t));
+    if (ret) {
+        *ret = cmd_make_(str, proc, str_index);
+        ret->is_dynamic_memory = true;
+    }
+    return ret;
+}
+
+// EXPERIMENTAL
+void cmd_syntax_parse_(const tokenized_str_t *str, command_t *cmd, uint str_index) {
+    for (uint i = 0; i < cmd->arg_cnt; ++i) {
+        cmd->syntax[i] = (arg_node_t *)size_node_get(tok_str_get(str, str_index));
+        if (cmd->syntax[i]->format[0] == '>') {
+            cmd_proc_t action = cmd->action;
+
+            cmd->action.action = NULL;
+            arraylist_push(&cmd->subcommands, cmd_alloc_(str, action, str_index));
+        }
+        ++str_index;
+    }
+}
+
+// EXPERIMENTAL
+command_t cmd_make_(const tokenized_str_t *str, cmd_proc_t proc, uint str_index) {
+    command_t ret = { 0 };
+
+    if (!str)
+        return ret;
+
+    ret.name = _strdup(tok_str_get(str, str_index));
+
+    while (str_index + ret.arg_cnt + 1 < str->parts.count) {
+        char *token = tok_str_get(str, str_index + ++ret.arg_cnt);        
+        if (token[0] != '<')
+            break;
+    }
+
+    ret.syntax = ret.arg_cnt ? malloc(ret.arg_cnt * sizeof(arg_node_t *)) : NULL;
+    ret.action = proc;
+    ret.subcommands = arraylist_make(&cmd_destroy);
+    cmd_syntax_parse_(str, &ret, str_index + 1);
+
+    return ret;
+}

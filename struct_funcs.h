@@ -18,8 +18,9 @@ bool byte_arraylist_push(byte_arraylist_t *list, uchar item);
 void byte_arraylist_destroy(byte_arraylist_t *list);
 
 tokenized_str_t tok_str_make(const char *str, char delim);
-char *tok_str_get(tokenized_str_t *tok_str, uint index);
+char *tok_str_get(const tokenized_str_t *tok_str, uint index);
 void tok_str_destroy(tokenized_str_t *tok_str);
+char *tok_str_reassemble(const tokenized_str_t *tok_str);
 
 arg_bundle_t arg_bundle_make(void);
 bool arg_bundle_add_(arg_bundle_t *bundle, const void *src, uint size, bool dynamic);

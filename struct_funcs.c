@@ -306,7 +306,7 @@ tokenized_str_t tok_str_make(const char *str, char delim) {
 * 
 * returns - pointer to beginning of the token (NULL if index is out of bounds)
 */
-char *tok_str_get(tokenized_str_t *tok_str, uint index) {
+char *tok_str_get(const tokenized_str_t *tok_str, uint index) {
     if (!tok_str || index >= tok_str->parts.count)
         return NULL;
 
@@ -324,6 +324,25 @@ void tok_str_destroy(tokenized_str_t *tok_str) {
 
     arraylist_destroy(&tok_str->parts);
     free(tok_str->str);
+}
+
+char *tok_str_reassemble(const tokenized_str_t *tok_str) {
+    const char *end_ptr = tok_str->parts.arr[tok_str->parts.count - 1];
+    end_ptr += strlen(end_ptr);
+    const uint size = (uint)(end_ptr - tok_str->str);
+    char *ret = malloc(size + 1);
+
+    if (ret) {
+        for (uint i = 0; i < size; ++i) {
+            if (tok_str->str[i] != '\0')
+                ret[i] = tok_str->str[i];
+            else
+                ret[i] = ' ';
+        }
+        ret[size] = '\0';
+    }
+
+    return ret;
 }
 
 /*
@@ -404,9 +423,8 @@ uint arg_bundle_get_(arg_bundle_t *bundle, void *dst, uint size) {
 /*
 * Retrieves the pointer to a bundle's current argument
 * Increments the bundle's index
-* If the bundle is out of arguments, it is deleted
 * The macro arg_bundle_getas(bundle, type) can be used to get the result as a given type
-*
+* 
 * bundle - the arg bundle to get the pointer from
 * 
 * returns - a pointer to the current argument (pointer to -1 if there are none left)
@@ -429,7 +447,6 @@ void *arg_bundle_get_raw_(arg_bundle_t *bundle) {
 * Copies the current argument from a bundle to a given location
 * Size is inferred from the next argument's start pointer / end of data array
 * Increments the bundle's index
-* If the bundle is out of arguments, it is deleted
 * 
 * bundle - the arg bundle to copy from
 * dst_   - the location to copy to

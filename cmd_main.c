@@ -16,6 +16,7 @@ cmd_map_t global_command_map = { 0 };
 typedef struct cmd_tree_location_t_ {
     char *ptr;
     command_t *parent;
+    uint str_index; // <- EXPERIMENTAL
 } cmd_tree_location_t;
 
 // state enum used by cmd_execute()
@@ -235,6 +236,9 @@ bool cmd_execute(const char *cmd_str) {
             break;
         case VALUE_EXPECTED:
             // attempt to parse current token as specified type
+
+            // (with how it's written now, sscanf_s() doesn't work here since the argument
+            // might be a string, in which case another parameter (buffer size) is needed)
             if (sscanf(cur_token, cur_cmd->syntax[args_parsed]->format, (void *)buffer) > 0) {
                 // if successful, store the result's raw bytes in an arg bundle
                 bundle_push(&args, buffer, cur_cmd->syntax[args_parsed++]);
@@ -286,7 +290,7 @@ void cmd_print_rec(const command_t *cmd, uint depth) {
     for (uint i = 0; i < cmd->subcommands.count; ++i) {
         const command_t *subcmd = (const command_t *)cmd->subcommands.arr[i];
         putchar('\n');
-        for (uint j = 0; j <= depth * 2; ++j)
+        for (uint j = 0; j < (depth + 1) * 2; ++j)
             putchar(' ');
         cmd_print_rec(subcmd, depth + 1);
     }
@@ -302,4 +306,108 @@ void cmd_dumpall(void) {
         }
     }
     putchar('\n');
+}
+
+// Used by cmd_loop()
+// Acts as action parameter for the 'dump' command
+void cmd_dumpall_interf(arg_bundle_t *a) {
+    UNREF(a);
+    cmd_dumpall();
+}
+
+// Used by cmd_loop()
+// Acts as action parameter for the 'exit' command
+void exit_func(arg_bundle_t *args) {
+    *(bool *)args->static_data = true;
+}
+
+/*
+* Starts an infinite loop of reading a command from stdin and executing it
+* 
+*/
+void cmd_loop(bool add_defaults) {
+    bool exit = false;
+    char buffer[512];
+
+    if (add_defaults) {
+        cmd_register("dump ", &cmd_dumpall_interf, NULL);
+        cmd_register("exit ", &exit_func, &exit);
+    }
+
+    while (!exit) {
+        fgets(buffer, 511, stdin);
+        cmd_execute(buffer);
+    }
+}
+
+
+// EXPERIMENTAL
+cmd_tree_location_t cmd_skip_existent_(const tokenized_str_t *cmd_str, const cmd_map_t *cmd_map) {
+    cmd_tree_location_t ret = { 0 };
+    uint str_index = 0;
+
+    if (!cmd_str || !cmd_map)
+        return ret;
+
+    const command_t *cur = cmd_map_find(cmd_map, tok_str_get(cmd_str, 0));
+
+    if (cur == NULL) {
+        ret.str_index = 0;
+        return ret;
+    }
+
+    while (++str_index < cmd_str->parts.count) {
+        char *token = tok_str_get(cmd_str, str_index);
+
+        if (token[0] != '<') {
+            ret.parent = (command_t *)cur;
+            cur = (const command_t *)find_subcommand(token, &cur->subcommands);
+            if (cur == NULL) {
+                ret.str_index = str_index;
+                return ret;
+            }
+        }
+    }
+
+    //for (uint i = 0; cmd_str[i] || cmd_str[i + 1]; ++i) {
+    //    if (cmd_str[i] == '\0' && cmd_str[i + 1] != '<') {
+    //        ret.parent = (command_t *)cur;
+    //        cur = (const command_t *)find_subcommand(cmd_str + i + 1, &cur->subcommands);
+    //        if (cur == NULL) {
+    //            ret.ptr = cmd_str + i + 1;
+    //            return ret;
+    //        }
+    //    }
+    //}
+
+    return ret;
+}
+
+// EXPERIMENTAL
+bool cmd_register_(const char *cmd_str, cmd_act_t action, void *static_data) {
+    if (global_command_map.map == NULL)
+        global_command_map = cmd_map_make();
+
+    DEBUG_ONLY(printf("[INFO] REGISTER_ START (%s)\n", cmd_str));
+
+    bool ret = false;
+    tokenized_str_t tok_str = tok_str_make(_strdup(cmd_str), ' ');
+    const cmd_tree_location_t loc = cmd_skip_existent_(&tok_str, &global_command_map);
+    const cmd_proc_t proc = { .action = action, .static_data = static_data };
+
+    if (loc.parent == NULL) {
+        // a completely new command - add it to the global hashmap
+        command_t cmd = cmd_make_(&tok_str, proc, loc.str_index);
+        ret = cmd_map_add(&global_command_map, &cmd);
+    }
+    else {
+        // parts of this command already exist
+        // skip them and add a new subcommand in the tree
+        command_t *cmd = cmd_alloc_(&tok_str, proc, loc.str_index);
+        ret = arraylist_push(&loc.parent->subcommands, cmd);
+    }
+
+    tok_str_destroy(&tok_str);
+    DEBUG_ONLY(printf("[INFO] REGISTER_ FINISH (%s)\n", cmd_str));
+    return ret;
 }
