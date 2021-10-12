@@ -76,6 +76,86 @@ command_t *find_subcommand(const char *key, const ptr_arraylist_t *list) {
     return NULL;
 }
 
+
+/*
+* Helper function of cmd_register()
+* Checks if parts of the given command already exist in the tree
+*
+* cmd_str - see cmd_register() description
+* cmd_map - a command hashmap where the existence of the command is to be checked
+*
+* returns - a struct of:
+*           - a pointer to the location in cmd_str where parsing should start
+*           - a pointer to the new command's parent command (NULL if there is none)
+*/
+cmd_tree_location_t cmd_skip_existent(const tokenized_str_t *cmd_str, const cmd_map_t *cmd_map) {
+    cmd_tree_location_t ret = { 0 };
+    uint str_index = 0;
+
+    if (!cmd_str || !cmd_map)
+        return ret;
+
+    const command_t *cur = cmd_map_find(cmd_map, tok_str_get(cmd_str, 0));
+
+    if (cur == NULL) {
+        ret.str_index = 0;
+        return ret;
+    }
+
+    while (++str_index < cmd_str->parts.count) {
+        char *token = tok_str_get(cmd_str, str_index);
+
+        if (token[0] != '<') {
+            ret.parent = (command_t *)cur;
+            cur = (const command_t *)find_subcommand(token, &cur->subcommands);
+            if (cur == NULL) {
+                ret.str_index = str_index;
+                return ret;
+            }
+        }
+    }
+
+    return ret;
+}
+
+/*
+* Adds a command to the registered command tree
+* This is what should be called from the main program to create new commands
+*
+* cmd_str     - a c-string that specifies how calls to the command should look
+* action      - pointer to a (void (arg_bundle_t *)) function that will be called when the command is run
+* static_data - a pointer that will be available under bundle->static_data inside the given function
+*
+* returns - whether the command was properly added
+*/
+bool cmd_register(const char *cmd_str, cmd_act_t action, void *static_data) {
+    if (global_command_map.map == NULL)
+        global_command_map = cmd_map_make();
+
+    DEBUG_ONLY(printf("[INFO] REGISTER_ START (%s)\n", cmd_str));
+
+    bool ret = false;
+    tokenized_str_t tok_str = tok_str_make(_strdup(cmd_str), ' ');
+    const cmd_tree_location_t loc = cmd_skip_existent(&tok_str, &global_command_map);
+    const cmd_proc_t proc = { .action = action, .static_data = static_data };
+
+    if (loc.parent == NULL) {
+        // a completely new command - add it to the global hashmap
+        command_t cmd = cmd_make(&tok_str, proc, loc.str_index);
+        ret = cmd_map_add(&global_command_map, &cmd);
+    }
+    else {
+        // parts of this command already exist
+        // skip them and add a new subcommand in the tree
+        command_t *cmd = cmd_alloc(&tok_str, proc, loc.str_index);
+        ret = arraylist_push(&loc.parent->subcommands, cmd);
+    }
+
+    tok_str_destroy(&tok_str);
+    DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str));
+    return ret;
+}
+
 /*
 * Helper function of cmd_register()
 * Checks if parts of the given command already exist in the tree
@@ -339,85 +419,4 @@ void cmd_loop(bool add_defaults) {
         fgets(buffer, 511, stdin);
         cmd_execute(buffer);
     }
-}
-
-
-// EXPERIMENTAL
-cmd_tree_location_t cmd_skip_existent(const tokenized_str_t *cmd_str, const cmd_map_t *cmd_map) {
-    cmd_tree_location_t ret = { 0 };
-    uint str_index = 0;
-
-    if (!cmd_str || !cmd_map)
-        return ret;
-
-    const command_t *cur = cmd_map_find(cmd_map, tok_str_get(cmd_str, 0));
-
-    if (cur == NULL) {
-        ret.str_index = 0;
-        return ret;
-    }
-
-    while (++str_index < cmd_str->parts.count) {
-        char *token = tok_str_get(cmd_str, str_index);
-
-        if (token[0] != '<') {
-            ret.parent = (command_t *)cur;
-            cur = (const command_t *)find_subcommand(token, &cur->subcommands);
-            if (cur == NULL) {
-                ret.str_index = str_index;
-                return ret;
-            }
-        }
-    }
-
-    //for (uint i = 0; cmd_str[i] || cmd_str[i + 1]; ++i) {
-    //    if (cmd_str[i] == '\0' && cmd_str[i + 1] != '<') {
-    //        ret.parent = (command_t *)cur;
-    //        cur = (const command_t *)find_subcommand(cmd_str + i + 1, &cur->subcommands);
-    //        if (cur == NULL) {
-    //            ret.ptr = cmd_str + i + 1;
-    //            return ret;
-    //        }
-    //    }
-    //}
-
-    return ret;
-}
-
-/*
-* Adds a command to the registered command tree
-* This is what should be called from the main program to create new commands
-*
-* cmd_str     - a c-string that specifies how calls to the command should look
-* action      - pointer to a (void (arg_bundle_t *)) function that will be called when the command is run
-* static_data - a pointer that will be available under bundle->static_data inside the given function
-*
-* returns - whether the command was properly added
-*/
-bool cmd_register(const char *cmd_str, cmd_act_t action, void *static_data) {
-    if (global_command_map.map == NULL)
-        global_command_map = cmd_map_make();
-
-    DEBUG_ONLY(printf("[INFO] REGISTER_ START (%s)\n", cmd_str));
-
-    bool ret = false;
-    tokenized_str_t tok_str = tok_str_make(_strdup(cmd_str), ' ');
-    const cmd_tree_location_t loc = cmd_skip_existent(&tok_str, &global_command_map);
-    const cmd_proc_t proc = { .action = action, .static_data = static_data };
-
-    if (loc.parent == NULL) {
-        // a completely new command - add it to the global hashmap
-        command_t cmd = cmd_make(&tok_str, proc, loc.str_index);
-        ret = cmd_map_add(&global_command_map, &cmd);
-    }
-    else {
-        // parts of this command already exist
-        // skip them and add a new subcommand in the tree
-        command_t *cmd = cmd_alloc(&tok_str, proc, loc.str_index);
-        ret = arraylist_push(&loc.parent->subcommands, cmd);
-    }
-
-    tok_str_destroy(&tok_str);
-    DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str));
-    return ret;
 }
