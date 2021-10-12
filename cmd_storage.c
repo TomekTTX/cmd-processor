@@ -67,7 +67,7 @@ void cmd_merge_subcmd(ptr_arraylist_t *list, command_t *cmd) {
 * args - currently parsed command string
 * cmd  - pointer to a command whose syntax array is to be filled
 */
-void cmd_syntax_parse(char *args, command_t *cmd) {
+void cmd_syntax_parse_(char *args, command_t *cmd) {
 
     for (uint i = 0, j = 0; i < cmd->arg_cnt; ++i) {
         cmd->syntax[i] = (arg_node_t *)size_node_get(args + j);
@@ -75,7 +75,7 @@ void cmd_syntax_parse(char *args, command_t *cmd) {
             cmd_proc_t action = cmd->action;
 
             cmd->action.action = NULL;
-            cmd_merge_subcmd(&cmd->subcommands, cmd_alloc(args + j, action));
+            cmd_merge_subcmd(&cmd->subcommands, cmd_alloc_(args + j, action));
         }
         while (args[j++] != '\0');
     }
@@ -89,10 +89,10 @@ void cmd_syntax_parse(char *args, command_t *cmd) {
 * 
 * returns - pointer to the newly created command
 */
-command_t *cmd_alloc(const char *input, cmd_proc_t proc) {
+command_t *cmd_alloc_(const char *input, cmd_proc_t proc) {
     command_t *ret = malloc(sizeof(command_t));
     if (ret) {
-        *ret = cmd_make(input, proc);
+        *ret = cmd_make_(input, proc);
         ret->is_dynamic_memory = true;
     }
     return ret;
@@ -107,7 +107,7 @@ command_t *cmd_alloc(const char *input, cmd_proc_t proc) {
 *
 * returns - the newly created command
 */
-command_t cmd_make(const char *str, cmd_proc_t proc) {
+command_t cmd_make_(const char *str, cmd_proc_t proc) {
     command_t ret = { 0 };
     char *args = (char *)str;
 
@@ -127,7 +127,7 @@ command_t cmd_make(const char *str, cmd_proc_t proc) {
     ret.syntax = ret.arg_cnt ? malloc(ret.arg_cnt * sizeof(arg_node_t *)) : NULL;
     ret.action = proc;
     ret.subcommands = arraylist_make(&cmd_destroy);
-    cmd_syntax_parse(args + 1, &ret);
+    cmd_syntax_parse_(args + 1, &ret);
 
     return ret;
 }
@@ -153,32 +153,53 @@ void cmd_destroy(command_t *cmd) {
 
 
 
-// EXPERIMENTAL
-command_t *cmd_alloc_(const tokenized_str_t *str, cmd_proc_t proc, uint str_index) {
+/*
+* Creates a heap-allocated command struct
+*
+* input - command string
+* proc  - a struct containing the command's function and static data
+*
+* returns - pointer to the newly created command
+*/
+command_t *cmd_alloc(const tokenized_str_t *str, cmd_proc_t proc, uint str_index) {
     command_t *ret = malloc(sizeof(command_t));
     if (ret) {
-        *ret = cmd_make_(str, proc, str_index);
+        *ret = cmd_make(str, proc, str_index);
         ret->is_dynamic_memory = true;
     }
     return ret;
 }
 
-// EXPERIMENTAL
-void cmd_syntax_parse_(const tokenized_str_t *str, command_t *cmd, uint str_index) {
+/*
+* Fills a command's syntax array
+* Makes cross-recursive calls with cmd_make()/cmd_alloc() when handling subcommands
+*
+* args - currently parsed command string
+* cmd  - pointer to a command whose syntax array is to be filled
+*/
+void cmd_syntax_parse(const tokenized_str_t *str, command_t *cmd, uint str_index) {
     for (uint i = 0; i < cmd->arg_cnt; ++i) {
         cmd->syntax[i] = (arg_node_t *)size_node_get(tok_str_get(str, str_index));
         if (cmd->syntax[i]->format[0] == '>') {
             cmd_proc_t action = cmd->action;
 
             cmd->action.action = NULL;
-            arraylist_push(&cmd->subcommands, cmd_alloc_(str, action, str_index));
+            arraylist_push(&cmd->subcommands, cmd_alloc(str, action, str_index));
         }
         ++str_index;
     }
 }
 
-// EXPERIMENTAL
-command_t cmd_make_(const tokenized_str_t *str, cmd_proc_t proc, uint str_index) {
+/*
+* Creates a stack-allocated command struct
+* Makes cross-recursive calls with cmd_syntax_parse() when handling subcommands
+*
+* str  - command string
+* proc - a struct containing the command's function and static data
+*
+* returns - the newly created command
+*/
+command_t cmd_make(const tokenized_str_t *str, cmd_proc_t proc, uint str_index) {
     command_t ret = { 0 };
 
     if (!str)
@@ -195,7 +216,8 @@ command_t cmd_make_(const tokenized_str_t *str, cmd_proc_t proc, uint str_index)
     ret.syntax = ret.arg_cnt ? malloc(ret.arg_cnt * sizeof(arg_node_t *)) : NULL;
     ret.action = proc;
     ret.subcommands = arraylist_make(&cmd_destroy);
-    cmd_syntax_parse_(str, &ret, str_index + 1);
+    cmd_syntax_parse(str, &ret, str_index + 1);
 
     return ret;
 }
+

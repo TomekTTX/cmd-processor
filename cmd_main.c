@@ -87,7 +87,7 @@ command_t *find_subcommand(const char *key, const ptr_arraylist_t *list) {
 *           - a pointer to the location in cmd_str where parsing should start
 *           - a pointer to the new command's parent command (NULL if there is none)
 */
-cmd_tree_location_t cmd_skip_existent(char *cmd_str, const cmd_map_t *cmd_map) {
+cmd_tree_location_t cmd_skip_existent_(char *cmd_str, const cmd_map_t *cmd_map) {
     cmd_tree_location_t ret = { 0 };
 
     if (!cmd_str || !cmd_map)
@@ -115,6 +115,7 @@ cmd_tree_location_t cmd_skip_existent(char *cmd_str, const cmd_map_t *cmd_map) {
 }
 
 /*
+* Deprecated
 * Adds a command to the registered command tree
 * This is what should be called from the main program to create new commands
 * 
@@ -127,7 +128,7 @@ cmd_tree_location_t cmd_skip_existent(char *cmd_str, const cmd_map_t *cmd_map) {
 * IMPORTANT: currently cmd_str should have a space, CR, LF or a similar blank char at the end
 *            otherwise this function will most likely crash the program
 */
-bool cmd_register(const char *cmd_str, cmd_act_t action, void *static_data) {
+bool cmd_register_(const char *cmd_str, cmd_act_t action, void *static_data) {
     if (global_command_map.map == NULL)
         global_command_map = cmd_map_make();
 
@@ -135,12 +136,12 @@ bool cmd_register(const char *cmd_str, cmd_act_t action, void *static_data) {
 
     char *str = _strdup(cmd_str);
     cmd_preprocess(str);
-    const cmd_tree_location_t loc = cmd_skip_existent(str, &global_command_map);
+    const cmd_tree_location_t loc = cmd_skip_existent_(str, &global_command_map);
     const cmd_proc_t proc = { .action = action, .static_data = static_data };
 
     if (loc.parent == NULL) {
         // a completely new command - add it to the global hashmap
-        command_t cmd = cmd_make(loc.ptr, proc);
+        command_t cmd = cmd_make_(loc.ptr, proc);
         free(str);
         DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str));
         return cmd_map_add(&global_command_map, &cmd);
@@ -148,7 +149,7 @@ bool cmd_register(const char *cmd_str, cmd_act_t action, void *static_data) {
     else {
         // parts of this command already exist
         // skip them and add a new subcommand in the tree
-        command_t *cmd = cmd_alloc(loc.ptr, proc);
+        command_t *cmd = cmd_alloc_(loc.ptr, proc);
         free(str);
         DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str));
         return arraylist_push(&loc.parent->subcommands, cmd);
@@ -330,8 +331,8 @@ void cmd_loop(bool add_defaults) {
     char buffer[512];
 
     if (add_defaults) {
-        cmd_register("dump ", &cmd_dumpall_interf, NULL);
-        cmd_register("exit ", &exit_func, &exit);
+        cmd_register("dump", &cmd_dumpall_interf, NULL);
+        cmd_register("exit", &exit_func, &exit);
     }
 
     while (!exit) {
@@ -342,7 +343,7 @@ void cmd_loop(bool add_defaults) {
 
 
 // EXPERIMENTAL
-cmd_tree_location_t cmd_skip_existent_(const tokenized_str_t *cmd_str, const cmd_map_t *cmd_map) {
+cmd_tree_location_t cmd_skip_existent(const tokenized_str_t *cmd_str, const cmd_map_t *cmd_map) {
     cmd_tree_location_t ret = { 0 };
     uint str_index = 0;
 
@@ -383,8 +384,17 @@ cmd_tree_location_t cmd_skip_existent_(const tokenized_str_t *cmd_str, const cmd
     return ret;
 }
 
-// EXPERIMENTAL
-bool cmd_register_(const char *cmd_str, cmd_act_t action, void *static_data) {
+/*
+* Adds a command to the registered command tree
+* This is what should be called from the main program to create new commands
+*
+* cmd_str     - a c-string that specifies how calls to the command should look
+* action      - pointer to a (void (arg_bundle_t *)) function that will be called when the command is run
+* static_data - a pointer that will be available under bundle->static_data inside the given function
+*
+* returns - whether the command was properly added
+*/
+bool cmd_register(const char *cmd_str, cmd_act_t action, void *static_data) {
     if (global_command_map.map == NULL)
         global_command_map = cmd_map_make();
 
@@ -392,22 +402,22 @@ bool cmd_register_(const char *cmd_str, cmd_act_t action, void *static_data) {
 
     bool ret = false;
     tokenized_str_t tok_str = tok_str_make(_strdup(cmd_str), ' ');
-    const cmd_tree_location_t loc = cmd_skip_existent_(&tok_str, &global_command_map);
+    const cmd_tree_location_t loc = cmd_skip_existent(&tok_str, &global_command_map);
     const cmd_proc_t proc = { .action = action, .static_data = static_data };
 
     if (loc.parent == NULL) {
         // a completely new command - add it to the global hashmap
-        command_t cmd = cmd_make_(&tok_str, proc, loc.str_index);
+        command_t cmd = cmd_make(&tok_str, proc, loc.str_index);
         ret = cmd_map_add(&global_command_map, &cmd);
     }
     else {
         // parts of this command already exist
         // skip them and add a new subcommand in the tree
-        command_t *cmd = cmd_alloc_(&tok_str, proc, loc.str_index);
+        command_t *cmd = cmd_alloc(&tok_str, proc, loc.str_index);
         ret = arraylist_push(&loc.parent->subcommands, cmd);
     }
 
     tok_str_destroy(&tok_str);
-    DEBUG_ONLY(printf("[INFO] REGISTER_ FINISH (%s)\n", cmd_str));
+    DEBUG_ONLY(printf("[INFO] REGISTER FINISH (%s)\n", cmd_str));
     return ret;
 }
